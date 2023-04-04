@@ -1,4 +1,5 @@
-import currency from "currency.js";
+import Dinero from "dinero.js";
+
 import { DepositPlanType } from "../../enums/DepositPlanType";
 import { DepositPlan } from "../../models/deposit/DepositPlan";
 import { FundDeposit } from "../../models/deposit/FundDeposit";
@@ -16,10 +17,13 @@ export function Deposit(
     throw new Error("Invalid params");
   }
 
-  const portfolioMap = new Map<string, currency>();
+  const portfolioMap = new Map<string, number>();
   let totalFundsDeposited = fundDeposits
     .map((x) => x.amountDeposited)
-    .reduce((prev, next) => prev.add(next), currency(0));
+    .reduce(
+      (prev, next) => prev.add(Dinero({ amount: next })),
+      Dinero({ amount: 0 })
+    );
 
   totalFundsDeposited = ProcessOneTimeDeposit(
     depositPlans,
@@ -33,7 +37,7 @@ export function Deposit(
     ([key, value]) => {
       return {
         portfolioId: key,
-        allocationAmount: value,
+        allocationAmount: Number(value.toFixed(2)),
       };
     }
   );
@@ -43,8 +47,8 @@ export function Deposit(
 
 function ProcessOneTimeDeposit(
   depositPlans: DepositPlan[],
-  portfolioMap: Map<string, currency>,
-  totalFundsDeposited: currency
+  portfolioMap: Map<string, number>,
+  totalFundsDeposited: Dinero.Dinero
 ) {
   let remainingFundsAfterAllocation = totalFundsDeposited;
   const oneTimeDeposit = depositPlans.find(
@@ -54,38 +58,42 @@ function ProcessOneTimeDeposit(
   if (oneTimeDeposit !== undefined) {
     const totalAmountToAllocate = oneTimeDeposit.portfolios
       .map((x) => x.allocationAmount)
-      .reduce((prev, next) => prev.add(next), currency(0));
+      .reduce(
+        (prev, next) => prev.add(Dinero({ amount: next })),
+        Dinero({ amount: 0 })
+      );
 
     remainingFundsAfterAllocation = totalFundsDeposited.subtract(
       totalAmountToAllocate
     );
-    if (remainingFundsAfterAllocation < currency(0)) {
+    if (remainingFundsAfterAllocation.getAmount() < 0) {
       oneTimeDeposit.portfolios.forEach((portfolio) => {
-        const percentageOfAllocation = currency(
-          portfolio.allocationAmount
-        ).divide(totalAmountToAllocate.value);
-        Allocate(
-          portfolioMap,
-          portfolio,
-          totalFundsDeposited.multiply(percentageOfAllocation)
-        );
+        if (totalAmountToAllocate.getAmount() > 0) {
+          const percentageOfAllocation =
+            portfolio.allocationAmount / totalAmountToAllocate.getAmount();
+          Allocate(
+            portfolioMap,
+            portfolio,
+            totalFundsDeposited.getAmount() * percentageOfAllocation
+          );
+        }
       });
     } else {
       oneTimeDeposit.portfolios.forEach((portfolio) => {
-        Allocate(portfolioMap, portfolio, currency(portfolio.allocationAmount));
+        Allocate(portfolioMap, portfolio, portfolio.allocationAmount);
       });
     }
   }
 
-  return remainingFundsAfterAllocation < currency(0)
-    ? currency(0)
+  return remainingFundsAfterAllocation.getAmount() < 0
+    ? Dinero({ amount: 0 })
     : remainingFundsAfterAllocation;
 }
 
 function ProcessMonthlyDeposit(
   depositPlans: DepositPlan[],
-  portfolioMap: Map<string, currency>,
-  totalFundsDeposited: currency
+  portfolioMap: Map<string, number>,
+  totalFundsDeposited: Dinero.Dinero
 ) {
   const monthlyDeposit = depositPlans.find(
     (x) => x.type === DepositPlanType.Monthly
@@ -94,30 +102,34 @@ function ProcessMonthlyDeposit(
   if (monthlyDeposit !== undefined) {
     const totalAmountToAllocate = monthlyDeposit.portfolios
       .map((x) => x.allocationAmount)
-      .reduce((prev, next) => prev.add(next), currency(0));
+      .reduce(
+        (prev, next) => prev.add(Dinero({ amount: next })),
+        Dinero({ amount: 0 })
+      );
 
     monthlyDeposit.portfolios.forEach((portfolio) => {
-      const percentageOfAllocation = currency(
-        portfolio.allocationAmount
-      ).divide(totalAmountToAllocate.value);
-      Allocate(
-        portfolioMap,
-        portfolio,
-        totalFundsDeposited.multiply(percentageOfAllocation)
-      );
+      if (totalAmountToAllocate.getAmount() > 0) {
+        const percentageOfAllocation =
+          portfolio.allocationAmount / totalAmountToAllocate.getAmount();
+        Allocate(
+          portfolioMap,
+          portfolio,
+          totalFundsDeposited.getAmount() * percentageOfAllocation
+        );
+      }
     });
   }
 }
 
 function Allocate(
-  portfolioMap: Map<string, currency>,
+  portfolioMap: Map<string, number>,
   portfolio: PortfolioAllocation,
-  amount: currency
+  amount: number
 ) {
   const existingAmount = portfolioMap.get(portfolio.portfolioId);
   if (existingAmount === undefined) {
     portfolioMap.set(portfolio.portfolioId, amount);
   } else {
-    portfolioMap.set(portfolio.portfolioId, existingAmount.add(amount));
+    portfolioMap.set(portfolio.portfolioId, existingAmount + amount);
   }
 }
