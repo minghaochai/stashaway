@@ -44,10 +44,24 @@ class DepositService implements IDepositService {
     portfolioMap: Map<string, number>,
     totalFundsDeposited: Dinero.Dinero
   ) {
+    let monthlyTotalAmountToAllocate = Dinero({ amount: 0 });
     let remainingFundsAfterAllocation = totalFundsDeposited;
     const oneTimeDeposit = depositPlans.find(
       (x) => x.type === DepositPlanType.OneTime
     );
+
+    const monthlyDeposit = depositPlans.find(
+      (x) => x.type === DepositPlanType.Monthly
+    );
+
+    if (monthlyDeposit !== undefined) {
+      monthlyTotalAmountToAllocate = monthlyDeposit.portfolios
+        .map((x) => x.allocationAmount)
+        .reduce(
+          (prev, next) => prev.add(Dinero({ amount: next })),
+          monthlyTotalAmountToAllocate
+        );
+    }
 
     if (oneTimeDeposit !== undefined) {
       const totalAmountToAllocate = oneTimeDeposit.portfolios
@@ -60,7 +74,10 @@ class DepositService implements IDepositService {
       remainingFundsAfterAllocation = totalFundsDeposited.subtract(
         totalAmountToAllocate
       );
-      if (remainingFundsAfterAllocation.getAmount() < 0) {
+      if (
+        remainingFundsAfterAllocation.getAmount() < 0 ||
+        monthlyTotalAmountToAllocate.getAmount() === 0
+      ) {
         oneTimeDeposit.portfolios.forEach((portfolio) => {
           if (totalAmountToAllocate.getAmount() > 0) {
             const percentageOfAllocation =
