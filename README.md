@@ -10,42 +10,48 @@ To run the solution:
 - change the directory to '/stashaway/dist' and run 'node app.js' to start the application.
 - Trigger a PUT request to the web server 'deposit' endpoint (e.g. https://stashaway.minghaochai.repl.co/deposit) with the following sample request body:
 
-"depositPlans":
-[
+```json
 {
-"id": "DP1",
-"type": 0,
-"portfolios": [
-{
-"portfolioId": "high",
-"allocationAmount": 10000
-},
-{
-"portfolioId": "retire",
-"allocationAmount": 500
+    "depositPlans":
+    [
+        {
+            "id": "DP1",
+            "type": 0,
+            "portfolios":
+            [
+                {
+                    "portfolioId": "high",
+                    "allocationAmount": 10000
+                },
+                {
+                    "portfolioId": "retire",
+                    "allocationAmount": 500
+                }
+            ]
+        },
+        {
+            "id": "DP2",
+            "type": 1,
+            "portfolios": [
+              {
+                  "portfolioId": "high",
+                  "allocationAmount": 0
+              },
+              {
+                  "portfolioId": "retire",
+                  "allocationAmount": 100
+              }
+            ]
+        }
+    ],
+    "fundDeposits":
+    [
+        {
+            "amountDeposited": 10500
+        },
+        {
+            "amountDeposited": 100
+        }
+    ]
 }
-]
-},
-{
-"id": "DP2",
-"type": 1,
-"portfolios": [
-{
-"portfolioId": "high",
-"allocationAmount": 0
-},
-{
-"portfolioId": "retire",
-"allocationAmount": 100
-}
-]
-}
-],
-"fundDeposits": [
-{
-"amountDeposited": 10500
-},
-{
-"amountDeposited": 100
-}
-]
+```
