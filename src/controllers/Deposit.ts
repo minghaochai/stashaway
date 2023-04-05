@@ -3,7 +3,7 @@ import { DepositPlan } from "../models/deposit/DepositPlan";
 import { DepositRequest } from "../models/deposit/DepositRequest";
 import { DepositResponse } from "../models/deposit/DepositResponse";
 import { FundDeposit } from "../models/deposit/FundDeposit";
-import { Deposit } from "../services/deposit/deposit";
+import DepositService from "../services/deposit/DepositService";
 
 export const put = (
   req: Request<{}, {}, DepositRequest>,
@@ -20,7 +20,7 @@ export const put = (
 
     const depositPlans: DepositPlan[] = req.body.depositPlans;
     const fundDeposits: FundDeposit[] = req.body.fundDeposits;
-    const result = Deposit(depositPlans, fundDeposits);
+    const result = DepositService.deposit(depositPlans, fundDeposits);
     const response: DepositResponse = {
       allocations: result,
     };
